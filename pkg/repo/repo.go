@@ -46,5 +46,30 @@ func (r *Repository) InsertValue(key string, value string) error {
 		}
 		return err
 	}
+	fmt.Println(resp.Code)
 	return nil
+}
+
+func (r *Repository) DeleteValue(key string) error {
+	_, err := r.GetByKey(key)
+	if errors.Is(err, ErrNoContent) {
+		return ErrNoContent
+	}
+	if err != nil {
+		return err
+	}
+	_, err = r.Conn.Delete("storage", "primary", []interface{}{key})
+	return err
+}
+
+func (r *Repository) ChangeValue(key, newValue string) error {
+	_, err := r.GetByKey(key)
+	if errors.Is(err, ErrNoContent) {
+		return ErrNoContent
+	}
+	if err != nil {
+		return err
+	}
+	_, err = r.Conn.Replace("storage", []interface{}{key, newValue})
+	return err
 }

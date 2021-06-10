@@ -14,6 +14,8 @@ import (
 func main() {
 	e := echo.New()
 	e.Use(middleware.Recover())
+	e.Use(middleware.Logger())
+
 	opts := tarantool.Opts{User: "guest"}
 	conn, err := tarantool.Connect("localhost:3301", opts) //host.docker.internal
 	if err != nil {
@@ -21,30 +23,14 @@ func main() {
 		return
 	}
 	repository := &repo.Repository{Conn: conn}
-	/*resp, err := conn.Insert("storage", []interface{}{"message", `{"message":"Hello"}`})
-	if err != nil {
-		fmt.Println("db error", err)
-		fmt.Println(resp.Code)
-		return
-	}
-	resp, err := conn.Select("storage", "primary", 0, 100, tarantool.IterAll, []interface{}{"message"})
-	if err != nil {
-		fmt.Println("db error", err)
-		fmt.Println(resp.Code)
-		return
-	}
-	fmt.Println(resp.Data)
-	for _, item := range resp.Data {	//[[message {"message":"Hello"}]]
-		fmt.Println(item)
-	}
-	*/
-	h := &handler.Handler{
-		Repo: repository,
-	}
+	h := &handler.Handler{Repo: repository}
 
 	e.GET("/", h.Hello)
+	// curl -i --request POST -H "Content-Type: application/json" --data "{\"key\":\"massage\",\"value\":{\"ava\":\"dava\"}}" localhost/kv
 	e.POST("/kv", h.InsertValue)
 	e.GET("/kv/:key", h.GetByKey)
+	e.DELETE("kv/:key", h.DeleteValue)
+	e.PUT("kv/:key", h.ChangeValue)
 
 	e.Logger.Fatal(e.Start(":80"))
 }
