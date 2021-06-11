@@ -26,7 +26,7 @@ func main() {
 	h := &handler.Handler{Repo: repository}
 
 	e.GET("/", h.Hello)
-	// curl -i --request POST -H "Content-Type: application/json" --data "{\"key\":\"massage\",\"value\":{\"ava\":\"dava\"}}" localhost/kv
+	// curl -i --request POST -H "Content-Type: application/json" --data '{"key":"massage","value":{"ava":"dava"}}' localhost/kv
 	e.POST("/kv", h.InsertValue)
 	e.GET("/kv/:key", h.GetByKey)
 	e.DELETE("kv/:key", h.DeleteValue)
