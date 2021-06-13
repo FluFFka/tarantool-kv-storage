@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>handler: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/FluFFka/tarantool-kv-storage/pkg/handler/handler.go (89.9%)</option>
+				
+				<option value="file1">github.com/FluFFka/tarantool-kv-storage/pkg/handler/handler_mock.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "errors"
+        "reflect"
+
+        "github.com/FluFFka/tarantool-kv-storage/pkg/repo"
+        "github.com/labstack/echo"
+)
+
+// mockgen -source="handler.go" -destination="handler_mock.go" -package=handler RepositoryInterface
+
+type RepositoryInterface interface {
+        GetByKey(string) (string, error)
+        InsertValue(string, string) error
+        DeleteValue(string) error
+        ChangeValue(string, string) error
+}
+
+type Handler struct {
+        Repo RepositoryInterface
+}
+
+func (h *Handler) GetByKey(ctx echo.Context) error <span class="cov8" title="1">{
+        key := ctx.Param("key")
+        resp, err := h.Repo.GetByKey(key)
+        if errors.Is(err, repo.ErrNoContent) </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("key not found: %s", key)
+                return ctx.NoContent(404)
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                ctx.Logger().Errorf("db error %s", err)
+                return ctx.NoContent(500)
+        }</span>
+        <span class="cov8" title="1">jsonResp := &amp;map[string]interface{}{}
+        err = json.Unmarshal([]byte(resp), jsonResp)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.Logger().Errorf("error in unmarshall %s", jsonResp)
+                return ctx.NoContent(500)
+        }</span>
+        <span class="cov8" title="1">ctx.Logger().Printf("responsed {%s: %v}", key, resp)
+        return ctx.JSON(200, jsonResp)</span>
+}
+
+func (h *Handler) InsertValue(ctx echo.Context) error <span class="cov8" title="1">{
+        var body map[string]interface{}
+        err := ctx.Bind(&amp;body)
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">key, ok := body["key"]
+        if !ok </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">if reflect.TypeOf(key).Kind() != reflect.String </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">value, ok := body["value"]
+        if !ok </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">valueJson, err := json.Marshal(value)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">err = h.Repo.InsertValue(reflect.ValueOf(key).String(), string(valueJson))
+        if errors.Is(err, repo.ErrKeyFound) </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("key already exists: %s", key)
+                return ctx.NoContent(409)
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                ctx.Logger().Errorf("db error %s", err)
+                return ctx.NoContent(500)
+        }</span>
+        <span class="cov8" title="1">ctx.Logger().Printf("inserted {%s: %s}", key, string(valueJson))
+        return ctx.JSON(200, value)</span>
+}
+
+func (h *Handler) DeleteValue(ctx echo.Context) error <span class="cov8" title="1">{
+        key := ctx.Param("key")
+        err := h.Repo.DeleteValue(key)
+        if errors.Is(err, repo.ErrNoContent) </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("key not found: %s", key)
+                return ctx.NoContent(404)
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                ctx.Logger().Errorf("db error %s", err)
+                return ctx.NoContent(500)
+        }</span>
+        <span class="cov8" title="1">ctx.Logger().Printf("deleted by key: %s", key)
+        return ctx.NoContent(200)</span>
+}
+
+func (h *Handler) ChangeValue(ctx echo.Context) error <span class="cov8" title="1">{
+        key := ctx.Param("key")
+        var body map[string]interface{}
+        err := ctx.Bind(&amp;body)
+        if err != nil </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">value, ok := body["value"]
+        if !ok </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">valueJson, err := json.Marshal(value)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.Logger().Printf("incorrect body: %s", body)
+                return ctx.NoContent(400)
+        }</span>
+        <span class="cov8" title="1">err = h.Repo.ChangeValue(key, string(valueJson))
+        if errors.Is(err, repo.ErrNoContent) </span><span class="cov8" title="1">{
+                ctx.Logger().Printf("key not found: %s", key)
+                return ctx.NoContent(404)
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                ctx.Logger().Errorf("db error %s", err)
+                return ctx.NoContent(500)
+        }</span>
+        <span class="cov8" title="1">ctx.Logger().Printf("updated {%s, %s}", key, string(valueJson))
+        return ctx.NoContent(200)</span>
+}
+
+func (h Handler) Hello(ctx echo.Context) error <span class="cov0" title="0">{
+        hellomes := map[string]string{"message": "Hello!"}
+        return ctx.JSON(200, hellomes)
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: handler.go
+
+// Package handler is a generated GoMock package.
+package handler
+
+import (
+        reflect "reflect"
+
+        gomock "github.com/golang/mock/gomock"
+)
+
+// MockRepositoryInterface is a mock of RepositoryInterface interface.
+type MockRepositoryInterface struct {
+        ctrl     *gomock.Controller
+        recorder *MockRepositoryInterfaceMockRecorder
+}
+
+// MockRepositoryInterfaceMockRecorder is the mock recorder for MockRepositoryInterface.
+type MockRepositoryInterfaceMockRecorder struct {
+        mock *MockRepositoryInterface
+}
+
+// NewMockRepositoryInterface creates a new mock instance.
+func NewMockRepositoryInterface(ctrl *gomock.Controller) *MockRepositoryInterface <span class="cov8" title="1">{
+        mock := &amp;MockRepositoryInterface{ctrl: ctrl}
+        mock.recorder = &amp;MockRepositoryInterfaceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockRepositoryInterface) EXPECT() *MockRepositoryInterfaceMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// ChangeValue mocks base method.
+func (m *MockRepositoryInterface) ChangeValue(arg0, arg1 string) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "ChangeValue", arg0, arg1)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// ChangeValue indicates an expected call of ChangeValue.
+func (mr *MockRepositoryInterfaceMockRecorder) ChangeValue(arg0, arg1 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeValue", reflect.TypeOf((*MockRepositoryInterface)(nil).ChangeValue), arg0, arg1)
+}</span>
+
+// DeleteValue mocks base method.
+func (m *MockRepositoryInterface) DeleteValue(arg0 string) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "DeleteValue", arg0)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// DeleteValue indicates an expected call of DeleteValue.
+func (mr *MockRepositoryInterfaceMockRecorder) DeleteValue(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteValue", reflect.TypeOf((*MockRepositoryInterface)(nil).DeleteValue), arg0)
+}</span>
+
+// GetByKey mocks base method.
+func (m *MockRepositoryInterface) GetByKey(arg0 string) (string, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetByKey", arg0)
+        ret0, _ := ret[0].(string)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetByKey indicates an expected call of GetByKey.
+func (mr *MockRepositoryInterfaceMockRecorder) GetByKey(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByKey", reflect.TypeOf((*MockRepositoryInterface)(nil).GetByKey), arg0)
+}</span>
+
+// InsertValue mocks base method.
+func (m *MockRepositoryInterface) InsertValue(arg0, arg1 string) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "InsertValue", arg0, arg1)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// InsertValue indicates an expected call of InsertValue.
+func (mr *MockRepositoryInterfaceMockRecorder) InsertValue(arg0, arg1 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertValue", reflect.TypeOf((*MockRepositoryInterface)(nil).InsertValue), arg0, arg1)
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

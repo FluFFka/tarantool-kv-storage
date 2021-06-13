@@ -9,8 +9,17 @@ import (
 	"github.com/labstack/echo"
 )
 
+// mockgen -source="handler.go" -destination="handler_mock.go" -package=handler RepositoryInterface
+
+type RepositoryInterface interface {
+	GetByKey(string) (string, error)
+	InsertValue(string, string) error
+	DeleteValue(string) error
+	ChangeValue(string, string) error
+}
+
 type Handler struct {
-	Repo *repo.Repository
+	Repo RepositoryInterface
 }
 
 func (h *Handler) GetByKey(ctx echo.Context) error {
@@ -24,7 +33,7 @@ func (h *Handler) GetByKey(ctx echo.Context) error {
 		ctx.Logger().Errorf("db error %s", err)
 		return ctx.NoContent(500)
 	}
-	jsonResp := &map[string]string{}
+	jsonResp := &map[string]interface{}{}
 	err = json.Unmarshal([]byte(resp), jsonResp)
 	if err != nil {
 		ctx.Logger().Errorf("error in unmarshall %s", jsonResp)
@@ -117,9 +126,4 @@ func (h *Handler) ChangeValue(ctx echo.Context) error {
 	}
 	ctx.Logger().Printf("updated {%s, %s}", key, string(valueJson))
 	return ctx.NoContent(200)
-}
-
-func (h Handler) Hello(ctx echo.Context) error {
-	hellomes := map[string]string{"message": "Hello!"}
-	return ctx.JSON(200, hellomes)
 }

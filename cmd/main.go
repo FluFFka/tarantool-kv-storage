@@ -17,7 +17,9 @@ func main() {
 	e.Use(middleware.Logger())
 
 	opts := tarantool.Opts{User: "guest"}
-	conn, err := tarantool.Connect("localhost:3301", opts) //host.docker.internal
+	conn, err := tarantool.Connect("host.docker.internal:3301", opts)
+	// host.docker.internal or localhost or
+	// (ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f 1)
 	if err != nil {
 		fmt.Println("tarantool connection failed ", err)
 		return
@@ -25,12 +27,10 @@ func main() {
 	repository := &repo.Repository{Conn: conn}
 	h := &handler.Handler{Repo: repository}
 
-	e.GET("/", h.Hello)
-	// curl -i --request POST -H "Content-Type: application/json" --data '{"key":"massage","value":{"ava":"dava"}}' localhost/kv
 	e.POST("/kv", h.InsertValue)
 	e.GET("/kv/:key", h.GetByKey)
-	e.DELETE("kv/:key", h.DeleteValue)
-	e.PUT("kv/:key", h.ChangeValue)
+	e.DELETE("/kv/:key", h.DeleteValue)
+	e.PUT("/kv/:key", h.ChangeValue)
 
 	e.Logger.Fatal(e.Start(":80"))
 }
