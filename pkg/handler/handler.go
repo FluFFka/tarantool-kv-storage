@@ -33,8 +33,8 @@ func (h *Handler) GetByKey(ctx echo.Context) error {
 		ctx.Logger().Errorf("db error %s", err)
 		return ctx.NoContent(500)
 	}
-	jsonResp := &map[string]interface{}{}
-	err = json.Unmarshal([]byte(resp), jsonResp)
+	var jsonResp interface{}
+	err = json.Unmarshal([]byte(resp), &jsonResp)
 	if err != nil {
 		ctx.Logger().Errorf("error in unmarshall %s", jsonResp)
 		return ctx.NoContent(500)
